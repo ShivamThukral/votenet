@@ -69,6 +69,9 @@ def demo_nn_distance():
     dist1, idx1, dist2, idx2 = nn_distance(pc1, pc2)
     print(dist1)
     print(idx1)
+    print(dist2)
+    print(idx2)
+
     dist = np.zeros((5,6))
     for i in range(5):
         for j in range(6):
