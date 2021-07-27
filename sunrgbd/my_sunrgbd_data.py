@@ -290,7 +290,7 @@ def get_box3d_dim_statistics(idx_filename,
             type_list.append(obj.classname)
             ry_list.append(heading_angle)
 
-    import cPickle as pickle
+    #import cPickle as pickle
     if save_path is not None:
         with open(save_path, 'wb') as fp:
             pickle.dump(type_list, fp)

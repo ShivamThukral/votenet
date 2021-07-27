@@ -21,7 +21,7 @@ from backbone_module import Pointnet2Backbone
 from voting_module import VotingModule
 from my_proposal_module import ProposalModule
 from dump_helper import dump_results
-from loss_helper import get_loss
+from my_loss_helper import get_loss
 
 
 class VoteNet(nn.Module):
@@ -107,20 +107,23 @@ class VoteNet(nn.Module):
 
 if __name__ == '__main__':
     sys.path.append(os.path.join(ROOT_DIR, 'sunrgbd'))
-    from sunrgbd_detection_dataset import SunrgbdDetectionVotesDataset, DC
-    from loss_helper import get_loss
+    from my_sunrgbd_detection_dataset import SunrgbdDetectionVotesDataset, DC
+    from my_loss_helper import get_loss
 
-    NUM_POINTS = 5000 #(say)
+    NUM_POINTS = 20000 #(say)
 
     # Define model
-    model = VoteNet(2, 12, 2, np.random.random((2, 3)), input_feature_dim=0, num_proposal=8).cuda()
+    model = VoteNet(3, 12, 3, np.random.random((3, 3)), input_feature_dim=0, num_proposal=8).cuda()
 
     try:
         # Define dataset
-        TRAIN_DATASET = SunrgbdDetectionVotesDataset('train', num_points=20000, use_v1=True)
+        TRAIN_DATASET = SunrgbdDetectionVotesDataset(split_set='train', use_height=False, use_color=False, use_v1=False, augment=True,
+                                         num_points=20000)
+        # TRAIN_DATASET = SunrgbdDetectionVotesDataset('train', num_points=20000, use_v1=False)
 
         # Model forward pass
-        sample = TRAIN_DATASET[5]
+        sample = TRAIN_DATASET[350]
+
         inputs = {'point_clouds': torch.from_numpy(sample['point_clouds']).unsqueeze(0).cuda()}
     except:
         print('Dataset has not been prepared. Use a random sample.')
@@ -129,6 +132,11 @@ if __name__ == '__main__':
     end_points = model(inputs)
     for key in end_points:
         print(key, end_points[key].shape)
+    print('-'*30)
+
+    # add the ground truth values
+    end_points['vote_label_mask'] = torch.from_numpy(sample['vote_label_mask']).unsqueeze(0).cuda()
+    end_points['vote_label'] = torch.from_numpy(sample['vote_label_mask']).unsqueeze(0).cuda()
 
     try:
         # Compute loss
@@ -137,7 +145,10 @@ if __name__ == '__main__':
         loss, end_points = get_loss(end_points, DC)
         print('loss', loss)
         end_points['point_clouds'] = inputs['point_clouds']
-        end_points['pred_mask'] = np.ones((1, 128))
+        end_points['pred_mask'] = np.ones((1, 8)) #num of proposals
         dump_results(end_points, 'tmp', DC)
+        for key in end_points:
+            print(key, end_points[key].shape)
+        print('-' * 30)
     except:
         print('Dataset has not been prepared. Skip loss and dump.')

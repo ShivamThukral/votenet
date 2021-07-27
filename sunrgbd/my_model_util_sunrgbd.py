@@ -25,13 +25,17 @@ class SunrgbdDatasetConfig(object):
         self.type_mean_size = {#'bathtub': np.array([0.765840, 1.398258, 0.472728]),
                                #'bed': np.array([2.114256, 1.620300, 0.927272]),
                                #'bookshelf': np.array([0.404671, 1.071108, 1.688889]),
-                               'chair': np.array([0.591958, 0.552978, 0.827272]),
+                               #'chair': np.array([0.591958, 0.552978, 0.827272]),
                                #'desk': np.array([0.695190, 1.346299, 0.736364]),
                                #'dresser': np.array([0.528526, 1.002642, 1.172878]),
                                #'night_stand': np.array([0.500618, 0.632163, 0.683424]),
                                #'sofa': np.array([0.923508, 1.867419, 0.845495]),
-                               'table': np.array([0.791118, 1.279516, 0.718182]),
-                               'toilet': np.array([0.699104, 0.454178, 0.756250])}
+                               #'table': np.array([0.791118, 1.279516, 0.718182]),
+                               #'toilet': np.array([0.699104, 0.454178, 0.756250])
+                                'chair': np.array([0.592329, 0.552978, 0.827272]),
+                                'table': np.array([0.792666, 1.285808, 0.718182]),
+                                'toilet': np.array([0.697272, 0.454178, 0.756250])
+                                }
 
         self.mean_size_arr = np.zeros((self.num_size_cluster, 3))
         for i in range(self.num_size_cluster):

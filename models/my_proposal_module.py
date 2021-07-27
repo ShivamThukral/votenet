@@ -22,23 +22,24 @@ def decode_scores(net, end_points, num_class, num_heading_bin, num_size_cluster,
     batch_size = net_transposed.shape[0]
     num_proposal = net_transposed.shape[1]
 
-    # objectness_scores = net_transposed[:, :, 0:2]
-    # end_points['objectness_scores'] = objectness_scores
+    objectness_scores = net_transposed[:, :, 0:2]
+    end_points['objectness_scores'] = objectness_scores
 
     base_xyz = end_points['aggregated_vote_xyz']  # (batch_size, num_proposal, 3)
-    center = base_xyz + net_transposed[:, :, 0:3]  # (batch_size, num_proposal, 3)
+    center = base_xyz + net_transposed[:, :, 2:5]  # (batch_size, num_proposal, 3)
     end_points['center'] = center
 
-    heading_scores = net_transposed[:, :, 3:3 + num_heading_bin]
-    heading_residuals_normalized = net_transposed[:, :, 3 + num_heading_bin:3 + num_heading_bin * 2]
+    heading_scores = net_transposed[:, :, 5:5 + num_heading_bin]
+    heading_residuals_normalized = net_transposed[:, :, 5 + num_heading_bin:5 + num_heading_bin * 2]
     end_points['heading_scores'] = heading_scores  # Bxnum_proposalxnum_heading_bin
-    end_points['heading_residuals_normalized'] = heading_residuals_normalized  # Bxnum_proposalxnum_heading_bin (should be -1 to 1)
+    end_points[
+        'heading_residuals_normalized'] = heading_residuals_normalized  # Bxnum_proposalxnum_heading_bin (should be -1 to 1)
     end_points['heading_residuals'] = heading_residuals_normalized * (
                 np.pi / num_heading_bin)  # Bxnum_proposalxnum_heading_bin
 
-    size_scores = net_transposed[:, :, 3 + num_heading_bin * 2:3 + num_heading_bin * 2 + num_size_cluster]
+    size_scores = net_transposed[:, :, 5 + num_heading_bin * 2:5 + num_heading_bin * 2 + num_size_cluster]
     size_residuals_normalized = net_transposed[:, :,
-                                3 + num_heading_bin * 2 + num_size_cluster:3 + num_heading_bin * 2 + num_size_cluster * 4].view(
+                                5 + num_heading_bin * 2 + num_size_cluster:5 + num_heading_bin * 2 + num_size_cluster * 4].view(
         [batch_size, num_proposal, num_size_cluster, 3])  # Bxnum_proposalxnum_size_clusterx3
     end_points['size_scores'] = size_scores
     end_points['size_residuals_normalized'] = size_residuals_normalized
@@ -79,7 +80,7 @@ class ProposalModule(nn.Module):
         self.conv1 = torch.nn.Conv1d(128, 128, 1)
         self.conv2 = torch.nn.Conv1d(128, 128, 1)
         # self.conv3 = torch.nn.Conv1d(128, 2 + 3 + num_heading_bin * 2 + num_size_cluster * 4 + self.num_class, 1)
-        self.conv3 = torch.nn.Conv1d(128,  3 + num_heading_bin * 2 + num_size_cluster * 4, 1)
+        self.conv3 = torch.nn.Conv1d(128, 2 + 3 + num_heading_bin * 2 + num_size_cluster * 4, 1)
         self.bn1 = torch.nn.BatchNorm1d(128)
         self.bn2 = torch.nn.BatchNorm1d(128)
 

@@ -55,8 +55,7 @@ def compute_vote_loss(end_points):
     seed_gt_votes_mask = torch.gather(end_points['vote_label_mask'], 1, seed_inds)
     seed_inds_expand = seed_inds.view(batch_size, num_seed, 1).repeat(1, 1, 3 * GT_VOTE_FACTOR)
     seed_gt_votes = torch.gather(end_points['vote_label'], 1, seed_inds_expand)
-    seed_gt_votes += end_points['seed_xyz'].repeat(1, 1, 3)
-
+    seed_gt_votes += end_points['seed_xyz'].repeat(1, 1, 3)                       # ST: this is the location where the seed points in gt should have voted
     # Compute the min of min of distance
     vote_xyz_reshape = vote_xyz.view(batch_size * num_seed, -1,
                                      3)  # from B,num_seed*vote_factor,3 to B*num_seed,vote_factor,3
@@ -195,12 +194,12 @@ def compute_box_and_sem_cls_loss(end_points, config):
                 torch.sum(objectness_label) + 1e-6)
 
     # 3.4 Semantic cls loss
-    sem_cls_label = torch.gather(end_points['sem_cls_label'], 1, object_assignment)  # select (B,K) from (B,K2)
-    criterion_sem_cls = nn.CrossEntropyLoss(reduction='none')
-    sem_cls_loss = criterion_sem_cls(end_points['sem_cls_scores'].transpose(2, 1), sem_cls_label)  # (B,K)
-    sem_cls_loss = torch.sum(sem_cls_loss * objectness_label) / (torch.sum(objectness_label) + 1e-6)
+    # sem_cls_label = torch.gather(end_points['sem_cls_label'], 1, object_assignment)  # select (B,K) from (B,K2)
+    # criterion_sem_cls = nn.CrossEntropyLoss(reduction='none')
+    # sem_cls_loss = criterion_sem_cls(end_points['sem_cls_scores'].transpose(2, 1), sem_cls_label)  # (B,K)
+    # sem_cls_loss = torch.sum(sem_cls_loss * objectness_label) / (torch.sum(objectness_label) + 1e-6)
 
-    return center_loss, heading_class_loss, heading_residual_normalized_loss, size_class_loss, size_residual_normalized_loss, sem_cls_loss
+    return center_loss, heading_class_loss, heading_residual_normalized_loss, size_class_loss, size_residual_normalized_loss#, sem_cls_loss
 
 
 def get_loss(end_points, config):
@@ -230,8 +229,7 @@ def get_loss(end_points, config):
     # Vote loss
     vote_loss = compute_vote_loss(end_points)
     end_points['vote_loss'] = vote_loss
-
-    # Obj loss
+    # # Obj loss
     objectness_loss, objectness_label, objectness_mask, object_assignment = \
         compute_objectness_loss(end_points)
     end_points['objectness_loss'] = objectness_loss
@@ -244,20 +242,22 @@ def get_loss(end_points, config):
     end_points['neg_ratio'] = \
         torch.sum(objectness_mask.float()) / float(total_num_proposal) - end_points['pos_ratio']
 
-    # Box loss and sem cls loss
-    center_loss, heading_cls_loss, heading_reg_loss, size_cls_loss, size_reg_loss, sem_cls_loss = \
-        compute_box_and_sem_cls_loss(end_points, config)
+    # # Box loss and sem cls loss
+    # center_loss, heading_cls_loss, heading_reg_loss, size_cls_loss, size_reg_loss, sem_cls_loss = \
+    #     compute_box_and_sem_cls_loss(end_points, config)
+    center_loss, heading_cls_loss, heading_reg_loss, size_cls_loss, size_reg_loss= \
+             compute_box_and_sem_cls_loss(end_points, config)
     end_points['center_loss'] = center_loss
     end_points['heading_cls_loss'] = heading_cls_loss
     end_points['heading_reg_loss'] = heading_reg_loss
     end_points['size_cls_loss'] = size_cls_loss
     end_points['size_reg_loss'] = size_reg_loss
-    end_points['sem_cls_loss'] = sem_cls_loss
+    #end_points['sem_cls_loss'] = sem_cls_loss
     box_loss = center_loss + 0.1 * heading_cls_loss + heading_reg_loss + 0.1 * size_cls_loss + size_reg_loss
     end_points['box_loss'] = box_loss
 
     # Final loss function
-    loss = vote_loss + 0.5 * objectness_loss + box_loss + 0.1 * sem_cls_loss
+    loss = vote_loss + 0.5 * objectness_loss + box_loss #+ 0.1 * sem_cls_loss
     loss *= 10
     end_points['loss'] = loss
 
@@ -267,5 +267,4 @@ def get_loss(end_points, config):
     obj_acc = torch.sum((obj_pred_val == objectness_label.long()).float() * objectness_mask) / (
                 torch.sum(objectness_mask) + 1e-6)
     end_points['obj_acc'] = obj_acc
-
     return loss, end_points
